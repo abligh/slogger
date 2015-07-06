@@ -32,15 +32,16 @@ type LogItem struct {
 	AccountGroupId string    `json:"account_group_id"`
 	Level          string    `json:"level"`
 	Exception      string    `json:"exception"`
-	Time           time.Time `json:"timestamp"`
+	OriginatorTime time.Time `json:"timestamp"`
 	Pid            int       `json:"pid"`
 
 	// Things added to Concerto
-	OriginatorIp   string `json:"originator_ip"`
-	OriginatorPort int    `json:"originator_port"`
-	Facility       string `json:"facility"`
-	Hostname       string `json:"hostname"`
-	User           string `json:"user"`
+	OriginatorIp   string    `json:"originator_ip"`
+	OriginatorPort int       `json:"originator_port"`
+	Facility       string    `json:"facility"`
+	Hostname       string    `json:"hostname"`
+	User           string    `json:"user"`
+	Time           time.Time `json:"time"`
 
 	// Things we (re)calculate ourselves
 	LevelNo int `json:"level_no"`
@@ -111,6 +112,9 @@ func (l *LogItem) normalise() {
 	// We should also check if it's too far from Now
 	if l.Time.IsZero() {
 		l.Time = time.Now()
+	}
+	if l.OriginatorTime.IsZero() {
+		l.OriginatorTime = l.Time
 	}
 }
 
