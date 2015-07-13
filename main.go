@@ -2,10 +2,19 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"time"
 )
+
+/*
+ * TODO:
+ *
+ * + Sharding and shard index
+ * + SSL and client certificate handling
+ * + Merkle thread
+ */
 
 func killPrevious() {
 	// A hack to kill previous instances
@@ -15,7 +24,10 @@ func killPrevious() {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
 	killPrevious()
+	buildJsonMap()
+	initFieldProperties()
 	db := newDatabase()
 	go syslogServerStart(db)
 	httpServerStart(db)

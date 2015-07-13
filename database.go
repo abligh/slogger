@@ -22,6 +22,8 @@ type Database struct {
 	mongoDBDialInfo *mgo.DialInfo
 }
 
+var jsonMap map[string]string
+
 func newDatabase() *Database {
 
 	database := new(Database)
@@ -49,22 +51,15 @@ func newDatabase() *Database {
 	// within the session will be observed in following queries (read-your-writes).
 	// http://godoc.org/labix.org/v2/mgo#Session.SetMode
 	database.mongoSession.SetMode(mgo.Monotonic, true)
+	database.mongoSession.SetSafe(&mgo.Safe{WMode: "majority"})
 
 	database.ensureIndices()
 
 	return database
 }
 
-func (db *Database) insertLogItem(l LogItem) {
-	// Get a copy of the session (same auth information) from the pool
-	sessionCopy := db.mongoSession.Copy()
-	defer sessionCopy.Close()
-
-	c := sessionCopy.DB("slogger").C("logitems")
-	err := c.Insert(l)
-	if err != nil {
-		log.Fatal(err)
-	}
+func (db *Database) getLogItemCollection(s *mgo.Session) *mgo.Collection {
+	return s.DB("slogger").C("logitems")
 }
 
 func (db *Database) ensureIndices() {
@@ -78,14 +73,39 @@ func (db *Database) ensureIndices() {
 	sessionCopy := db.mongoSession.Copy()
 	defer sessionCopy.Close()
 
-	c := sessionCopy.DB("slogger").C("logitems")
+	c := db.getLogItemCollection(sessionCopy)
 
 	for _, k := range keys {
 		index := mgo.Index{
 			Key: []string{k},
+		}
+		switch k {
+		case "sequenceid":
+			index.Key = append(index.Key, "shardgroup")
+			index.Unique = true
+		}
+		if hasFieldProperty(k, fpNoIndex) {
+			continue
 		}
 		if err := c.EnsureIndex(index); err != nil {
 			panic("Could not add index")
 		}
 	}
 }
+
+func buildJsonMap() {
+		jsonMap = make(map[string]string)
+		fields := structs.Fields(&LogItem{})
+		for _, f := range fields {
+			if f.IsExported() {
+				fname := f.Name()
+				mname := strings.ToLower(fname)
+				jname := fname
+				if tag := f.Tag("json"); tag!="" {
+					jname = strings.Split(tag, ",")[0]
+				}
+				jsonMap[jname] = mname
+			}	
+		}
+}
+
