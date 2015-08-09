@@ -140,9 +140,9 @@ func syslogServerStart(db *Database) {
 	handler := syslog.NewChannelHandler(channel)
 
 	server := syslog.NewServer()
-	//server.SetFormat(syslog.RFC5424)
-	server.SetFormat(syslog.RFC3164)
+	server.SetFormat(syslog.Automatic)
 	server.SetHandler(handler)
+	server.ListenTCP("0.0.0.0:10514")
 	server.ListenUDP("0.0.0.0:10514")
 	server.Boot()
 

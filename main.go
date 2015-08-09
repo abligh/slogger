@@ -11,6 +11,7 @@ import (
 /*
  * TODO:
  *
+ * + Config file
  * + Sharding and shard index
  * + SSL and client certificate handling
  * + Merkle thread

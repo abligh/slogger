@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -234,6 +235,14 @@ func createLogItem(c *Context, w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(body, &logItem); err != nil {
 		http.Error(w, "Cannot parse JSON", 422)
 		return
+	}
+	logItem.OriginatorIp = ""
+	logItem.OriginatorPort = 0
+	if ip, po, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		logItem.OriginatorIp = ip
+		if p, err := strconv.Atoi(po); err == nil {
+			logItem.OriginatorPort = p
+		}
 	}
 	logItem.normalise()
 	logItem.makeHashAndInsert(c.db)

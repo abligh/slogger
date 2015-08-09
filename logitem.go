@@ -36,21 +36,21 @@ import (
  */
 type LogItem struct {
 	// Things in Concerto
-	Message        string    `json:"message"`
-	InstanceId     string    `json:"instance_id"`
-	AccountGroupId string    `json:"account_group_id"`
-	Level          string    `json:"level"`
-	Exception      string    `json:"exception"`
+	Message        string    `json:"message" bson:",omitempty"`
+	InstanceId     string    `json:"instance_id" bson:",omitempty"`
+	AccountGroupId string    `json:"account_group_id" bson:",omitempty"`
+	Level          string    `json:"level" bson:",omitempty"`
+	Exception      string    `json:"exception" bson:",omitempty"`
 	OriginatorTime time.Time `json:"timestamp"`
-	Pid            int       `json:"pid"`
+	Pid            int       `json:"pid" bson:",omitempty"`
 
 	// Things added to Concerto
-	OriginatorIp   string    `json:"originator_ip"`
-	OriginatorPort int       `json:"originator_port"`
-	Facility       string    `json:"facility"`
-	Hostname       string    `json:"hostname"`
-	User           string    `json:"user"`
-	Time           time.Time `json:"time"`
+	OriginatorIp   string    `json:"originator_ip" bson:",omitempty"`
+	OriginatorPort int       `json:"originator_port" bson:",omitempty"`
+	Facility       string    `json:"facility" bson:",omitempty"`
+	Hostname       string    `json:"hostname" bson:",omitempty"`
+	User           string    `json:"user" bson:",omitempty"`
+	Time           time.Time `json:"time" bson:",omitempty"`
 
 	// Things we (re)calculate ourselves
 	LevelNo       int    `json:"level_no"`
@@ -59,6 +59,7 @@ type LogItem struct {
 	SequenceId    int64  `json:"sequence_id"`
 	ShardGroup    int    `json:"shard_group"`
 	FormatVersion int    `json:"format_version"`
+	ClientName	  string `json:"client_name" bson:",omitempty"`
 	Verified      bool   `json:"verified" bson:",omitempty" slogger:"nohash,noquery,noindex"`
 }
 
@@ -259,11 +260,11 @@ func (l *LogItem) checkHash() bool {
 }
 
 func (l *LogItem) makeHashAndInsert(db *Database) {
-	start := time.Now()
+	//start := time.Now()
 	sessionCopy := db.mongoSession.Copy()
 	defer func() {
 		sessionCopy.Close()
-		log.Printf("Time to insert = %s\n", time.Since(start))
+		//log.Printf("Time to insert = %s\n", time.Since(start))
 	}()
 
 	// Convert to BSON and back to round times properly
