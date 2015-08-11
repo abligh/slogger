@@ -59,7 +59,7 @@ type LogItem struct {
 	SequenceId    int64  `json:"sequence_id"`
 	ShardGroup    int    `json:"shard_group"`
 	FormatVersion int    `json:"format_version"`
-	ClientName	  string `json:"client_name" bson:",omitempty"`
+	ClientName    string `json:"client_name" bson:",omitempty"`
 	Verified      bool   `json:"verified" bson:",omitempty" slogger:"nohash,noquery,noindex"`
 }
 
@@ -130,14 +130,14 @@ const (
 
 const (
 	fpPresent = iota
-	fpNoHash = iota
+	fpNoHash  = iota
 	fpNoQuery = iota
 	fpNoIndex = iota
 )
 
 type fieldType struct {
-	name string
-	properties map[int] interface{}
+	name       string
+	properties map[int]interface{}
 }
 
 var logItemFields map[string]fieldType
@@ -145,7 +145,7 @@ var logItemFieldList []string
 
 func getFieldProperty(field string, p int) (*interface{}, bool) {
 	prop, ok := logItemFields[strings.ToLower(field)].properties[p]
-	if (ok) {
+	if ok {
 		return &prop, true
 	} else {
 		return nil, false
@@ -154,7 +154,7 @@ func getFieldProperty(field string, p int) (*interface{}, bool) {
 
 func hasFieldProperty(field string, p int) bool {
 	prop, ok := getFieldProperty(field, p)
-	return ok && (prop!=nil) && ((*prop).(bool))
+	return ok && (prop != nil) && ((*prop).(bool))
 }
 
 func setFieldProperty(field string, p int, prop interface{}) {
@@ -169,7 +169,7 @@ func initFieldProperties() {
 			logItemFieldList = append(logItemFieldList, name)
 			logItemFields[strings.ToLower(name)] = fieldType{name: name, properties: make(map[int]interface{})}
 			setFieldProperty(name, fpPresent, true)
-			if tag := f.Tag("slogger"); tag!="" {
+			if tag := f.Tag("slogger"); tag != "" {
 				comps := strings.Split(tag, ",")
 				for _, comp := range comps {
 					switch comp {
@@ -223,7 +223,7 @@ func (l *LogItem) makeHash() {
 	str := structs.New(l)
 	for _, k := range logItemFieldList {
 		v, ok := str.FieldOk(k)
-		if (ok) {
+		if ok {
 			if !hasFieldProperty(k, fpNoHash) {
 				switch t := v.Value().(type) {
 				case time.Time:
@@ -269,13 +269,13 @@ func (l *LogItem) makeHashAndInsert(db *Database) {
 
 	// Convert to BSON and back to round times properly
 	bytes, err := bson.Marshal(l)
-	if (err != nil) {
+	if err != nil {
 		log.Panic("Cannot BSON marshal logitem")
 	}
 	if err := bson.Unmarshal(bytes, &l); err != nil {
 		log.Panic("Cannot BSON unmarshal logitem")
 	}
-	
+
 	l.ShardGroup = shardGroup
 	backoff := initialBackoff
 
@@ -328,7 +328,7 @@ func queryLogItems(db *Database, query interface{}, sortOrder []string, limit in
 	c := db.getLogItemCollection(sessionCopy)
 
 	q := c.Find(query).Sort(append(sortOrder, "_id")...)
-	if (limit > 0) {
+	if limit > 0 {
 		q = q.Limit(limit)
 	}
 	iter := q.Iter()

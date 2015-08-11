@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -102,7 +103,7 @@ func validateFieldQuery(t *map[string]interface{}) error {
 			}
 		case "$not":
 			if m, ok := vv.(map[string]interface{}); ok {
-				if err := validateFieldQuery(&m) ; err != nil {
+				if err := validateFieldQuery(&m); err != nil {
 					return err
 				}
 			} else {
@@ -121,7 +122,7 @@ func jsonToDbKeys(i *interface{}) error {
 		nm := make(map[string]interface{})
 		for k, v := range m {
 			// First see if it is a valid field name and if so translate it
-			if jk, ok := jsonMap[k]; ok && !hasFieldProperty(jk,fpNoQuery) {
+			if jk, ok := jsonMap[k]; ok && !hasFieldProperty(jk, fpNoQuery) {
 				// The value must either be:
 				// 0. a straight value
 				// 1. a map containing a single element of a relational operator and a value
@@ -244,6 +245,14 @@ func createLogItem(c *Context, w http.ResponseWriter, r *http.Request) {
 			logItem.OriginatorPort = p
 		}
 	}
+
+	if tls := r.TLS; tls != nil {
+		certs := tls.PeerCertificates
+		if len(certs) > 0 {
+			logItem.ClientName = certs[0].Subject.CommonName
+		}
+	}
+
 	logItem.normalise()
 	logItem.makeHashAndInsert(c.db)
 
@@ -282,7 +291,7 @@ func queryLogItem(c *Context, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+
 	var sortOrder []string
 	sostring := r.URL.Query().Get("sort")
 	if len(sostring) != 0 {
@@ -296,7 +305,7 @@ func queryLogItem(c *Context, w http.ResponseWriter, r *http.Request) {
 				n = strings.TrimPrefix(n, "+")
 			}
 			if j, ok := jsonMap[n]; ok && !hasFieldProperty(j, fpNoQuery) {
-				if (desc) {
+				if desc {
 					sortOrder = append(sortOrder, fmt.Sprintf("-%s", j))
 				} else {
 					sortOrder = append(sortOrder, j)
@@ -340,7 +349,18 @@ func queryLogItem(c *Context, w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("],\"complete\":%t,\"count\":%d}\n", complete, count)))
 }
 
-func httpServerStart(db *Database) {
+func httpServerStart(db *Database, listen string) {
 	router := newRouter(db)
-	log.Fatal(http.ListenAndServe("127.0.0.1:8080", router))
+	log.Fatal(http.ListenAndServe(listen, router))
+}
+
+func httpsServerStart(db *Database, listen string, tlsConfig *tls.Config) {
+	// This is somewhat hacky - see tlshackery.go for why
+	router := newRouter(db)
+	server := &http.Server{
+		Addr:      listen,
+		TLSConfig: tlsConfig,
+		Handler:   router,
+	}
+	log.Fatal(ListenAndServeTLSNoCerts(server))
 }

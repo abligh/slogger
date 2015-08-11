@@ -3,18 +3,19 @@ package main
 import (
 	"github.com/fatih/structs"
 	"labix.org/v2/mgo"
-	//"labix.org/v2/mgo/bson"
 	"log"
 	"sort"
 	"strings"
 	"time"
 )
 
-const (
-	MongoDBHosts = "127.0.0.1:27017"
-	//AuthDatabase = "xx"
-	//AuthUserName = "xx"
-	//AuthPassword = "xx"
+var (
+	mongoDBHosts   []string
+	authDatabase   string
+	authUserName   string
+	authPassword   string
+	databaseName   string = "slogger"
+	collectionName string = "logitems"
 )
 
 type Database struct {
@@ -29,20 +30,26 @@ func newDatabase() *Database {
 	database := new(Database)
 	// establish a connection
 	database.mongoDBDialInfo = &mgo.DialInfo{
-		Addrs:   []string{MongoDBHosts},
+		Addrs:   mongoDBHosts,
 		Timeout: 60 * time.Second,
-		//Database: AuthDatabase,
-		//Username: AuthUserName,
-		//Password: AuthPassword,
 	}
+
+	if authUserName != "" && authPassword != "" {
+		database.mongoDBDialInfo.Username = authUserName
+		database.mongoDBDialInfo.Password = authPassword
+		if authDatabase != "" {
+			database.mongoDBDialInfo.Database = authDatabase
+		}
+	}
+
+	log.Printf("Connecting to mongo on %s", strings.Join(mongoDBHosts, ","))
 
 	// Create a session which maintains a pool of socket connections
 	// to our MongoDB.
 	var err error
 	database.mongoSession, err = mgo.DialWithInfo(database.mongoDBDialInfo)
 	if err != nil {
-		log.Fatalf("CreateSession: %s\n", err)
-		panic("Cannot create mongo connection")
+		log.Fatalf("Can create a mongo session: %s", err)
 	}
 
 	// Reads may not be entirely up-to-date, but they will always see the
@@ -59,7 +66,7 @@ func newDatabase() *Database {
 }
 
 func (db *Database) getLogItemCollection(s *mgo.Session) *mgo.Collection {
-	return s.DB("slogger").C("logitems")
+	return s.DB(databaseName).C(collectionName)
 }
 
 func (db *Database) ensureIndices() {
@@ -94,18 +101,17 @@ func (db *Database) ensureIndices() {
 }
 
 func buildJsonMap() {
-		jsonMap = make(map[string]string)
-		fields := structs.Fields(&LogItem{})
-		for _, f := range fields {
-			if f.IsExported() {
-				fname := f.Name()
-				mname := strings.ToLower(fname)
-				jname := fname
-				if tag := f.Tag("json"); tag!="" {
-					jname = strings.Split(tag, ",")[0]
-				}
-				jsonMap[jname] = mname
-			}	
+	jsonMap = make(map[string]string)
+	fields := structs.Fields(&LogItem{})
+	for _, f := range fields {
+		if f.IsExported() {
+			fname := f.Name()
+			mname := strings.ToLower(fname)
+			jname := fname
+			if tag := f.Tag("json"); tag != "" {
+				jname = strings.Split(tag, ",")[0]
+			}
+			jsonMap[jname] = mname
 		}
+	}
 }
-

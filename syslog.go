@@ -94,6 +94,9 @@ func processLogParts(db *Database, logParts syslogparser.LogParts) {
 	if hostname, ok := getPartString(&logParts, "hostname"); ok {
 		logItem.Hostname = hostname
 	}
+	if clientname, ok := getPartString(&logParts, "tls_peer"); ok {
+		logItem.ClientName = clientname
+	}
 	if msg, ok := getPartString(&logParts, "content"); ok {
 		if tag, ok := getPartString(&logParts, "tag"); ok {
 			// msg AND tag
@@ -134,16 +137,12 @@ func processLogParts(db *Database, logParts syslogparser.LogParts) {
 	logItem.makeHashAndInsert(db)
 }
 
-func syslogServerStart(db *Database) {
-	// something here
+func syslogServerRun(server *syslog.Server, db *Database) {
+	server.SetFormat(syslog.Automatic)
 	channel := make(syslog.LogPartsChannel)
 	handler := syslog.NewChannelHandler(channel)
-
-	server := syslog.NewServer()
-	server.SetFormat(syslog.Automatic)
 	server.SetHandler(handler)
-	server.ListenTCP("0.0.0.0:10514")
-	server.ListenUDP("0.0.0.0:10514")
+
 	server.Boot()
 
 	go func(channel syslog.LogPartsChannel) {

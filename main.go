@@ -27,9 +27,9 @@ func killPrevious() {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	killPrevious()
+	readConfig()
 	buildJsonMap()
 	initFieldProperties()
 	db := newDatabase()
-	go syslogServerStart(db)
-	httpServerStart(db)
+	startServices(db)
 }
