@@ -136,19 +136,6 @@ func readConfig() {
 
 func getServiceConfig(s service) *tls.Config {
 
-	var capool x509.CertPool
-
-	if s.cacertpath != "" {
-		capool := x509.NewCertPool()
-		if cacerts, err := ioutil.ReadFile(s.cacertpath); err != nil {
-			log.Fatal("Cannot read cacerts from " + s.cacertpath)
-		} else {
-			if ok := capool.AppendCertsFromPEM(cacerts); !ok {
-				log.Fatal("Cannot add certs from " + s.cacertpath)
-			}
-		}
-	}
-
 	if cert, err := ioutil.ReadFile(s.certpath); err != nil {
 		log.Fatal("Cannot read certs from " + s.certpath)
 	} else {
@@ -163,14 +150,26 @@ func getServiceConfig(s service) *tls.Config {
 					ClientAuth:   tls.RequireAndVerifyClientCert,
 					MinVersion:   tls.VersionTLS12,
 					Certificates: []tls.Certificate{certificate},
-					ClientCAs:    &capool,
 				}
+
+				if s.cacertpath != "" {
+					capool := x509.NewCertPool()
+					if cacerts, err := ioutil.ReadFile(s.cacertpath); err != nil {
+						log.Fatal("Cannot read cacerts from " + s.cacertpath)
+					} else {
+						if ok := capool.AppendCertsFromPEM(cacerts); !ok {
+							log.Fatal("Cannot add certs from " + s.cacertpath)
+						}
+						config.ClientCAs = capool
+					}
+				}
+
 				config.Rand = rand.Reader
 				return &config
 			}
 		}
 	}
-	panic("Internal error")
+	panic("Internal error") // as apparently log.Fatal might not return (wtf?)
 }
 
 func startServices(db *Database) {
