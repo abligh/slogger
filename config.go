@@ -33,7 +33,8 @@ var defaultConfig string = `
 		"mongoservers": [ "127.0.0.1:27017" ],
 		"database": "slogger",
 		"collection": "logitems"
-	}
+	},
+	"hashsecret" : "sekritsquirrel"
 }
 `
 
@@ -54,7 +55,7 @@ var services []service
 
 func readConfig() {
 	template := cdl.Template{
-		"/":            "{}services?{1,} db",
+		"/":            "{}services?{1,} db hashsecret",
 		"services":     "{}type listen protocol certpath? keypath? cacertpath?",
 		"type":         serviceTypeEnum,
 		"listen":       "ipport",
@@ -99,6 +100,8 @@ func readConfig() {
 			"authdatabase": &authDatabase,
 			"username":     &authUserName,
 			"password":     &authPassword,
+
+			"hashsecret": &hashSecret,
 
 			"services": func(o interface{}, p cdl.Path) *cdl.CdlError {
 				if newServ.serviceType.String() == "rest" && newServ.protocol.String() != "tcp" {

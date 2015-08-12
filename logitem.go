@@ -124,8 +124,11 @@ const (
 	initialBackoff          = 1          // Initial backoff period in microseconds
 	maximumBackoff          = 100 * 1000 // Maximum backoff period in microseconds
 	iterationsBeforeBackoff = 5
-	secret                  = "sekritsquirrel"
 	shardGroup              = 1234
+)
+
+var (
+	hashSecret string
 )
 
 const (
@@ -245,7 +248,7 @@ func (l *LogItem) makeHash() {
 		}
 		b.WriteByte(0)
 	}
-	fmt.Fprintf(&b, "%s", secret)
+	fmt.Fprintf(&b, "%s", hashSecret)
 	sha := sha256.Sum256(b.Bytes())
 	l.Hash = fmt.Sprintf("%064x", sha)
 }
